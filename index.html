@@ -485,7 +485,7 @@ function submitForgot(){
 }
 
 function submitAuth(){
-  if(!fbAuth){showToast('Auth not ready. Please wait a moment.');return;}
+  if(!fbAuth||!fbDb){showToast('Auth not ready. Please wait a moment.');return;}
   var uEl=document.getElementById('authUser');
   var pEl=document.getElementById('authPass');
   var errEl=document.getElementById('authErr');
@@ -502,51 +502,62 @@ function submitAuth(){
   }
   if(btn)btn.disabled=true;
   if(errEl)errEl.textContent='';
-  var email=toEmail(u);
+
   if(authMode==='login'){
-    fbAuth.signInWithEmailAndPassword(email,p)
-      .then(function(){closeModal();})
-      .catch(function(e){
-        if(errEl)errEl.textContent=(e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')
-          ?'Incorrect username or password.'
-          :'Error: '+e.message;
-        if(btn)btn.disabled=false;
-      });
+    // If it looks like a real email, sign in directly
+    if(isRealEmail(u)){
+      doSignIn(u,p,errEl,btn);
+    } else {
+      // Username login: look up their auth email in Firestore first
+      fbDb.collection('usernames').doc(u.toLowerCase()).get()
+        .then(function(doc){
+          var authEmail=doc.exists?doc.data().authEmail:toEmail(u);
+          doSignIn(authEmail,p,errEl,btn);
+        })
+        .catch(function(){
+          // Firestore lookup failed, try fake email
+          doSignIn(toEmail(u),p,errEl,btn);
+        });
+    }
   } else {
+    // SIGNUP
     var realEmailEl=document.getElementById('authEmail');
     var realEmail=realEmailEl?realEmailEl.value.trim():'';
-    fbAuth.createUserWithEmailAndPassword(email,p)
+    // Use real email as auth email if provided, otherwise use fake
+    var authEmail=realEmail?realEmail:toEmail(u);
+    var username=u.toLowerCase();
+    fbAuth.createUserWithEmailAndPassword(authEmail,p)
       .then(function(cred){
-        var afterSetup=function(){closeModal();};
-        if(realEmail&&cred.user){
-          // Update Firebase Auth email to real email so password reset works
-          cred.user.updateEmail(realEmail)
-            .then(function(){
-              if(fbDb)fbDb.collection('users').doc(cred.user.uid)
-                .set({recoveryEmail:realEmail},{merge:true}).catch(function(){});
-              afterSetup();
-            })
-            .catch(function(){
-              // If updateEmail fails (e.g. email already in use), still save to Firestore
-              if(fbDb)fbDb.collection('users').doc(cred.user.uid)
-                .set({recoveryEmail:realEmail},{merge:true}).catch(function(){});
-              afterSetup();
-            });
-        } else {
-          afterSetup();
-        }
+        var uid=cred.user.uid;
+        // Save username -> authEmail mapping so username login works
+        var batch=[
+          fbDb.collection('usernames').doc(username).set({uid:uid,authEmail:authEmail}),
+          fbDb.collection('users').doc(uid).set({username:username,authEmail:authEmail,recoveryEmail:realEmail||''},{ merge:true})
+        ];
+        Promise.all(batch).catch(function(){});
+        closeModal();
       })
       .catch(function(e){
-        if(errEl)errEl.textContent=e.code==='auth/email-already-in-use'
-          ?'That username is already taken.'
-          :e.code==='auth/invalid-email'
-          ?'Please enter a valid recovery email.'
-          :'Error: '+e.message;
+        if(errEl)errEl.textContent=
+          e.code==='auth/email-already-in-use'?'That username is already taken.':
+          e.code==='auth/invalid-email'?'Please enter a valid recovery email.':
+          'Error: '+e.message;
         if(btn)btn.disabled=false;
       });
   }
 }
 
+function doSignIn(email,p,errEl,btn){
+  fbAuth.signInWithEmailAndPassword(email,p)
+    .then(function(){closeModal();})
+    .catch(function(e){
+      if(errEl)errEl.textContent=
+        (e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')
+        ?'Incorrect username or password.'
+        :'Error: '+e.message;
+      if(btn)btn.disabled=false;
+    });
+}
 function signOut(){
   if(!fbAuth)return;
   fbAuth.signOut().then(function(){showToast('Logged out.');});
