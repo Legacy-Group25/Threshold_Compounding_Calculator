@@ -478,7 +478,7 @@ function submitForgot(){
       }
       fbAuth.sendPasswordResetEmail(email)
         .then(function(){
-          if(errEl){errEl.style.color='var(--green)';errEl.textContent='Reset link sent! Check your inbox.';}
+          if(errEl){errEl.style.color='var(--green)';errEl.textContent='Reset link sent! Check your inbox — also check your junk or spam folder.';}
           if(eEl)eEl.value='';
         })
         .catch(function(e){
