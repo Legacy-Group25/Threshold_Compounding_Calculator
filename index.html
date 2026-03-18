@@ -979,10 +979,6 @@ function showToast(msg){
   setTimeout(function(){t.classList.remove('on');},2200);
 }
 
-setInterval(function(){
-  if(currentUID)saveData();
-},10000);
-
 window.addEventListener('resize',function(){if(res.length)drawChart();});
 document.addEventListener('DOMContentLoaded',function(){
   var passEl=document.getElementById('authPass');
