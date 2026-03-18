@@ -134,6 +134,11 @@ tbody tr:last-child td{border-bottom:none}
 .modal-btn{width:100%;padding:10px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s}
 .modal-btn:hover{opacity:.88}
 .modal-btn:disabled{opacity:.5;cursor:not-allowed}
+.pw-wrap{position:relative;margin-bottom:12px}
+.pw-wrap input[type=password],.pw-wrap input[type=text]{width:100%;margin-bottom:0;padding-right:38px}
+.pw-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:2px;line-height:1;transition:color .15s}
+.pw-eye:hover{color:var(--text2)}
+#confirmPassWrap{display:none}
 /* Auth header area */
 .auth-area{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .auth-user{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px}
@@ -320,9 +325,19 @@ tbody tr:last-child td{border-bottom:none}
       <button class="modal-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
     </div>
     <label for="authUser">Username</label>
-    <input type="text" id="authUser" placeholder="Enter username" autocomplete="username">
+    <input type="text" id="authUser" placeholder="Enter username" autocomplete="username" style="margin-bottom:12px">
     <label for="authPass">Password</label>
-    <input type="password" id="authPass" placeholder="Enter password" autocomplete="current-password">
+    <div class="pw-wrap">
+      <input type="password" id="authPass" placeholder="Enter password" autocomplete="current-password">
+      <button class="pw-eye" type="button" onclick="togglePw('authPass',this)" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    </div>
+    <div id="confirmPassWrap">
+      <label for="authPassConfirm">Confirm password</label>
+      <div class="pw-wrap">
+        <input type="password" id="authPassConfirm" placeholder="Re-enter password" autocomplete="new-password">
+        <button class="pw-eye" type="button" onclick="togglePw('authPassConfirm',this)" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+    </div>
     <div class="modal-err" id="authErr"></div>
     <button class="modal-btn" id="authSubmitBtn" onclick="submitAuth()">Login</button>
   </div>
@@ -346,15 +361,29 @@ function openModal(){
   var u=document.getElementById('authUser');
   if(u){u.focus();u.value='';}
   var p=document.getElementById('authPass');
-  if(p)p.value='';
+  if(p){p.value='';p.type='password';}
+  var cp=document.getElementById('authPassConfirm');
+  if(cp){cp.value='';cp.type='password';}
   var err=document.getElementById('authErr');
   if(err)err.textContent='';
+  // Default to login tab
+  switchTab('login');
 }
 function closeModal(){
   var m=document.getElementById('authModal');
   if(m)m.classList.remove('show');
 }
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+function togglePw(id,btn){
+  var inp=document.getElementById(id);
+  if(!inp)return;
+  var show=inp.type==='password';
+  inp.type=show?'text':'password';
+  btn.innerHTML=show
+    ?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+    :'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+}
 
 function switchTab(mode){
   authMode=mode;
@@ -366,12 +395,19 @@ function switchTab(mode){
   var sub=document.getElementById('modalSubtitle');
   var btn=document.getElementById('authSubmitBtn');
   var err=document.getElementById('authErr');
+  var cpw=document.getElementById('confirmPassWrap');
   if(title)title.textContent=mode==='login'?'Welcome back':'Create account';
   if(sub)sub.textContent=mode==='login'
     ?'Sign in to save your settings, deposits, and withdrawals — no need to re-enter them every time.'
     :'Create an account to save your settings, deposits, and withdrawals across sessions.';
   if(btn)btn.textContent=mode==='login'?'Login':'Sign Up';
   if(err)err.textContent='';
+  if(cpw)cpw.style.display=mode==='signup'?'block':'none';
+  // Reset confirm field and eye icons when switching tabs
+  var cp=document.getElementById('authPassConfirm');
+  if(cp){cp.value='';cp.type='password';}
+  var pass=document.getElementById('authPass');
+  if(pass)pass.type='password';
 }
 
 function submitAuth(){
@@ -384,6 +420,12 @@ function submitAuth(){
   var p=pEl?pEl.value:'';
   if(!u){if(errEl)errEl.textContent='Please enter a username.';return;}
   if(p.length<6){if(errEl)errEl.textContent='Password must be at least 6 characters.';return;}
+  if(authMode==='signup'){
+    var cpEl=document.getElementById('authPassConfirm');
+    var cp=cpEl?cpEl.value:'';
+    if(!cp){if(errEl)errEl.textContent='Please confirm your password.';return;}
+    if(p!==cp){if(errEl)errEl.textContent='Passwords do not match.';return;}
+  }
   if(btn)btn.disabled=true;
   if(errEl)errEl.textContent='';
   var email=toEmail(u);
