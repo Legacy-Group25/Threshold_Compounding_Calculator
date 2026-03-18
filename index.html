@@ -156,7 +156,7 @@ tbody tr:last-child td{border-bottom:none}
     <div class="auth-area">
       <button class="btn btn-sm" onclick="exportCSV()">&#8595; Export CSV</button>
       <div id="authLoggedOut" style="display:flex;gap:6px">
-        <button class="btn btn-sm btn-accent" onclick="openModal()">Login / Sign Up</button>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><button class="btn btn-sm btn-accent" onclick="openModal()">Login / Sign Up</button><span style="font-size:10px;color:var(--text3);text-align:right">Save your settings, deposits &amp; withdrawals</span></div>
       </div>
       <div id="authLoggedIn" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="auth-user">Signed in as <span class="auth-username" id="authUsername"></span></span>
@@ -308,7 +308,7 @@ tbody tr:last-child td{border-bottom:none}
   <div class="modal">
     <button class="modal-close" onclick="closeModal()">&#215;</button>
     <h2 id="modalTitle">Welcome back</h2>
-    <p id="modalSubtitle">Sign in to save and restore your calculator settings.</p>
+    <p id="modalSubtitle">Sign in to save your settings, deposits, and withdrawals — no need to re-enter them every time.</p>
     <div class="modal-tabs">
       <button class="modal-tab on" id="tabLogin" onclick="switchTab('login')">Login</button>
       <button class="modal-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
@@ -362,8 +362,8 @@ function switchTab(mode){
   var err=document.getElementById('authErr');
   if(title)title.textContent=mode==='login'?'Welcome back':'Create account';
   if(sub)sub.textContent=mode==='login'
-    ?'Sign in to save and restore your calculator settings.'
-    :'Choose a username and password to get started.';
+    ?'Sign in to save your settings, deposits, and withdrawals — no need to re-enter them every time.'
+    :'Create an account to save your settings, deposits, and withdrawals across sessions.';
   if(btn)btn.textContent=mode==='login'?'Login':'Sign Up';
   if(err)err.textContent='';
 }
