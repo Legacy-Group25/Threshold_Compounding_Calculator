@@ -557,7 +557,7 @@ function submitAuth(){
             fbDb.collection('usernames').doc(username).set({uid:uid,authEmail:authEmail}),
             fbDb.collection('users').doc(uid).set({username:username,authEmail:authEmail,recoveryEmail:realEmail||''},{merge:true})
           ];
-          Promise.all(batch).catch(function(){});
+          Promise.all(batch).catch(function(e){console.error('Firestore signup write failed:',e);});
           closeModal();
         })
         .catch(function(e){
@@ -666,14 +666,33 @@ window.addEventListener('load',function(){
       if(loggedIn)loggedIn.style.display='flex';
       // Get username from Firestore, never show email
       fbDb.collection('users').doc(user.uid).get().then(function(doc){
-        var uname=(doc.exists&&doc.data().username)
-          ?doc.data().username
-          :user.email.replace('@aintuition.app','');
-        var el=document.getElementById('authUsername');
-        if(el)el.textContent=uname;
-      }).catch(function(){
-        var el=document.getElementById('authUsername');
-        if(el)el.textContent=user.email.replace('@aintuition.app','');
+        if(doc.exists&&doc.data().username){
+          var el=document.getElementById('authUsername');
+          if(el)el.textContent=doc.data().username;
+        } else {
+          // Fallback: search usernames collection for this uid
+          fbDb.collection('usernames').where('uid','==',user.uid).limit(1).get()
+            .then(function(snap){
+              var uname='';
+              if(!snap.empty)uname=snap.docs[0].id;
+              else uname=user.email.replace('@aintuition.app','');
+              var el=document.getElementById('authUsername');
+              if(el)el.textContent=uname;
+            })
+            .catch(function(){
+              var el=document.getElementById('authUsername');
+              if(el)el.textContent=user.email.replace('@aintuition.app','');
+            });
+        }
+      }).catch(function(e){
+        console.error('Username lookup failed:',e);
+        // Last resort fallback — search usernames collection
+        fbDb.collection('usernames').where('uid','==',user.uid).limit(1).get()
+          .then(function(snap){
+            var uname=!snap.empty?snap.docs[0].id:user.email.replace('@aintuition.app','');
+            var el=document.getElementById('authUsername');
+            if(el)el.textContent=uname;
+          }).catch(function(){});
       });
       loadData();
     } else {
