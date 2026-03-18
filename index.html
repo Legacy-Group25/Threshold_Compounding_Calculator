@@ -297,7 +297,7 @@ tbody tr:last-child td{border-bottom:none}
           <th style="text-align:center">Deposits</th>
           <th style="text-align:center">Compounds</th>
           <th style="text-align:center">Expired</th>
-          <th>Withdrawn</th>
+          <th>Cash In / Out</th>
           <th>Cumulative</th>
         </tr></thead>
         <tbody id="tbody"></tbody>
@@ -866,7 +866,7 @@ function simulate(){
       day:dn,date:bd[day],
       tp:totalPrincipal,earn:earn,comps:comps,
       expL:expL,lots:activeLots,cum:cum,
-      wdrAmt:wdrAmt,isDep:!!dm[dn],isWdr:!!wm[dn]
+      wdrAmt:wdrAmt,depAmt:dm[dn]||0,isDep:!!dm[dn],isWdr:!!wm[dn]
     });
   }
   rows._totalWdrn=totalWdrn;
@@ -974,7 +974,12 @@ function updateTable(){
       '<td style="text-align:center">'+fi(r.lots)+'</td>'+
       '<td style="text-align:center"'+(r.comps>0?' class="hi"':'')+'>'+( r.comps>0?fi(r.comps):'&#8212;')+'</td>'+
       '<td style="text-align:center"'+(r.expL>0?' class="neg"':'')+'>'+( r.expL>0?fi(r.expL):'&#8212;')+'</td>'+
-      '<td class="'+(r.wdrAmt>0?'wi':'')+'">'+( r.wdrAmt>0?'('+fb(r.wdrAmt)+')':'&#8212;')+'</td>'+
+      (function(){
+  var parts=[];
+  if(r.depAmt>0)parts.push('<span class="pos">+'+fb(r.depAmt)+'</span>');
+  if(r.wdrAmt>0)parts.push('<span class="wi">-'+fb(r.wdrAmt)+'</span>');
+  return '<td>'+(parts.length?parts.join(' '):'&#8212;')+'</td>';
+})()+
       '<td>'+fb(r.cum)+'</td>'+
     '</tr>';
   }
