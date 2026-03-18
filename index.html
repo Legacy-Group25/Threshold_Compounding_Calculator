@@ -333,19 +333,22 @@ tbody tr:last-child td{border-bottom:none}
       <button class="modal-tab on" id="tabLogin" onclick="switchTab('login')">Login</button>
       <button class="modal-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
     </div>
-    <label for="authUser">Username</label>
+    <label id="authUserLabel" for="authUser">Username</label>
     <input type="text" id="authUser" placeholder="Enter username" autocomplete="username" style="margin-bottom:12px">
     <label for="authPass">Password</label>
     <div class="pw-wrap">
       <input type="password" id="authPass" placeholder="Enter password" autocomplete="current-password">
       <button class="pw-eye" type="button" onclick="togglePw('authPass',this)" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
     </div>
-    <div id="confirmPassWrap">
+    <div id="confirmPassWrap" style="display:none">
       <label for="authPassConfirm">Confirm password</label>
       <div class="pw-wrap">
         <input type="password" id="authPassConfirm" placeholder="Re-enter password" autocomplete="new-password">
         <button class="pw-eye" type="button" onclick="togglePw('authPassConfirm',this)" tabindex="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
+      <label for="authEmail" style="margin-top:4px">Recovery email <span style="color:var(--text3);font-weight:400">(optional)</span></label>
+      <input type="email" id="authEmail" placeholder="your@email.com" autocomplete="email" style="margin-bottom:4px">
+      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Only used if you ever need to reset your password. We never share it.</p>
     </div>
     <div class="modal-err" id="authErr"></div>
     <button class="modal-btn" id="authSubmitBtn" onclick="submitAuth()">Login</button>
@@ -362,7 +365,8 @@ var currentUID=null,fbAuth=null,fbDb=null;
 // ── Auth helper functions (global scope so onclick handlers can reach them) ──
 var authMode='login';
 
-function toEmail(u){return u.trim().toLowerCase()+'@aintuition.app';}
+function isRealEmail(s){return s.indexOf('@')>0&&s.indexOf('.')>0&&!s.endsWith('@aintuition.app');}
+function toEmail(u){return isRealEmail(u)?u.trim().toLowerCase():u.trim().toLowerCase()+'@aintuition.app';}
 
 function openModal(){
   var m=document.getElementById('authModal');
@@ -373,6 +377,8 @@ function openModal(){
   if(p){p.value='';p.type='password';}
   var cp=document.getElementById('authPassConfirm');
   if(cp){cp.value='';cp.type='password';}
+  var em=document.getElementById('authEmail');
+  if(em)em.value='';
   var err=document.getElementById('authErr');
   if(err)err.textContent='';
   // Default to login tab
@@ -412,9 +418,15 @@ function switchTab(mode){
   if(btn)btn.textContent=mode==='login'?'Login':'Sign Up';
   if(err)err.textContent='';
   if(cpw)cpw.style.display=mode==='signup'?'block':'none';
+  var ul=document.getElementById('authUserLabel');
+  var uEl=document.getElementById('authUser');
+  if(ul)ul.textContent=mode==='login'?'Username or email':'Username';
+  if(uEl)uEl.placeholder=mode==='login'?'Enter username or email':'Enter username';
   // Reset confirm field and eye icons when switching tabs
   var cp=document.getElementById('authPassConfirm');
   if(cp){cp.value='';cp.type='password';}
+  var em=document.getElementById('authEmail');
+  if(em)em.value='';
   var pass=document.getElementById('authPass');
   if(pass)pass.type='password';
 }
@@ -427,7 +439,7 @@ function submitAuth(){
   var btn=document.getElementById('authSubmitBtn');
   var u=uEl?uEl.value.trim():'';
   var p=pEl?pEl.value:'';
-  if(!u){if(errEl)errEl.textContent='Please enter a username.';return;}
+  if(!u){if(errEl)errEl.textContent=authMode==='login'?'Please enter your username or email.':'Please enter a username.';return;}
   if(p.length<6){if(errEl)errEl.textContent='Password must be at least 6 characters.';return;}
   if(authMode==='signup'){
     var cpEl=document.getElementById('authPassConfirm');
@@ -448,11 +460,22 @@ function submitAuth(){
         if(btn)btn.disabled=false;
       });
   } else {
+    var realEmailEl=document.getElementById('authEmail');
+    var realEmail=realEmailEl?realEmailEl.value.trim():'';
     fbAuth.createUserWithEmailAndPassword(email,p)
-      .then(function(){closeModal();})
+      .then(function(cred){
+        // Store real email in profile doc if provided
+        if(realEmail&&fbDb){
+          fbDb.collection('users').doc(cred.user.uid).set({recoveryEmail:realEmail},{merge:true})
+            .catch(function(){});
+        }
+        closeModal();
+      })
       .catch(function(e){
         if(errEl)errEl.textContent=e.code==='auth/email-already-in-use'
           ?'That username is already taken.'
+          :e.code==='auth/invalid-email'
+          ?'Please enter a valid recovery email.'
           :'Error: '+e.message;
         if(btn)btn.disabled=false;
       });
