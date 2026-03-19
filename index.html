@@ -445,7 +445,9 @@ function switchTab(mode){
   var em=document.getElementById('authEmail');
   if(em)em.value='';
   var pass=document.getElementById('authPass');
-  if(pass)pass.type='password';
+  if(pass){pass.value='';pass.type='password';}
+  var uEl2=document.getElementById('authUser');
+  if(uEl2)uEl2.value='';
 }
 
 
