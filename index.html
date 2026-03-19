@@ -528,13 +528,13 @@ function submitAuth(){
   } else {
     // SIGNUP — check username and recovery email don't already exist
     var realEmailEl=document.getElementById('authEmail');
-    var realEmail=realEmailEl?realEmailEl.value.trim():'';
+    var realEmail=realEmailEl?realEmailEl.value.trim().toLowerCase():'';
     var authEmail=realEmail?realEmail:toEmail(u);
     var username=u.toLowerCase();
 
     // Build checks: always check username, optionally check recovery email
     var checks=[fbDb.collection('usernames').doc(username).get()];
-    if(realEmail)checks.push(fbDb.collection('users').where('recoveryEmail','==',realEmail).limit(1).get());
+    if(realEmail)checks.push(fbDb.collection('users').where('recoveryEmail','==',realEmail.toLowerCase()).limit(1).get());
 
     Promise.all(checks).then(function(results){
       var usernameDoc=results[0];
