@@ -1013,11 +1013,19 @@ function updateTable(){
 // Deposits
 
 function getEventDate(dayNum){
-  var sd=document.getElementById('sd').value;
-  if(!sd||!dayNum||isNaN(dayNum)||dayNum<1)return'';
-  var bd=getBD(sd,parseInt(dayNum));
-  if(bd.length<parseInt(dayNum))return'';
-  var d=bd[parseInt(dayNum)-1];
+  var raw=document.getElementById('sd').value;
+  if(!raw||!dayNum||isNaN(dayNum)||dayNum<1)return'';
+  // Convert MM/DD/YYYY to YYYY-MM-DD for getBD
+  var sd=raw;
+  if(raw.indexOf('/')>-1){
+    var p=raw.split('/');
+    if(p.length===3&&p[2].length===4)sd=p[2]+'-'+p[0]+'-'+p[1];
+    else return'';
+  }
+  var n=parseInt(dayNum);
+  var bd=getBD(sd,n);
+  if(bd.length<n)return'';
+  var d=bd[n-1];
   var mm=String(d.getMonth()+1).padStart(2,'0');
   var dd=String(d.getDate()).padStart(2,'0');
   var yyyy=d.getFullYear();
